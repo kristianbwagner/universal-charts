@@ -4,7 +4,7 @@
 
 <script>
 
-import { LineChart, ColumnChart, StackedColumnChart, BarChart, StackedBarChart } from '../charts';
+import { LineChart, ColumnChart, StackedColumnChart, BarChart, StackedBarChart } from '../scripts/charts';
 
 export default {
   props: {
