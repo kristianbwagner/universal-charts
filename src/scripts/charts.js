@@ -87,6 +87,8 @@ class Chart {
     mapUpdate('axisBottom.gridlines.hidden');
     mapUpdate('axisBottom.gridlines.color');
     mapUpdate('axisBottom.gridlines.width');
+    mapUpdate('axisBottom.min');
+    mapUpdate('axisBottom.max');
     
     // axisLeft
     mapUpdate('axisLeft.padding');
@@ -636,14 +638,14 @@ class BarChart extends Chart {
     super.update(config);
     
     const values = [];
-    this.datasets.forEach(d => {d.values.forEach(r => {if (values.indexOf(r.y) === -1) {values.push(r.y)}})});
+    this.datasets.forEach(d => {d.values.forEach(r => {if (values.indexOf(r.x) === -1) {values.push(r.x)}})});
     this.axisLeft.domain = values.reverse();
 
     super.drawLeftAxis();  
 
     this.axisBottom.domain = [
-      this.axisBottom.min === 'auto' ? d3.min(this.datasets.map(d => d3.min(d.values, r => r.x))) : this.axisBottom.min,
-      this.axisBottom.max === 'auto' ? d3.max(this.datasets.map(d => d3.max(d.values, r => r.x))) : this.axisBottom.max
+      this.axisBottom.min === 'auto' ? d3.min(this.datasets.map(d => d3.min(d.values, r => r.y))) : this.axisBottom.min,
+      this.axisBottom.max === 'auto' ? d3.max(this.datasets.map(d => d3.max(d.values, r => r.y))) : this.axisBottom.max
     ];
 
     super.drawBottomAxis();
@@ -652,18 +654,18 @@ class BarChart extends Chart {
     const barGroupData = this.axisLeft.domain.map(groupName => {
       const groupValues = [];
       this.datasets.forEach(c => {
-        const value = c.values.find(d => d.y === groupName);
+        const value = c.values.find(d => d.x === groupName);
         if (value) {
           groupValues.push({
-            y: c.name,
-            x: value.x,
+            x: c.name,
+            y: value.y,
             color: c.color,
             axis: c.axis
           });
         }
       })
       return {
-        y: groupName,
+        x: groupName,
         groups: groupValues
       }
     });
@@ -676,7 +678,7 @@ class BarChart extends Chart {
       .padding(this.axisLeft.innerPadding || 0)
 
     const updateBarGroup = (node) => {
-      node.attr("transform", d => "translate(0, " + this.axisLeft.scale(d.y) + ")")
+      node.attr("transform", d => "translate(0, " + this.axisLeft.scale(d.x) + ")")
       .attr("height", this.axisLeft.scale.bandwidth())
     }
 
@@ -686,27 +688,27 @@ class BarChart extends Chart {
       .attr('width', d => {
         const min = d3.max([this.axisBottom.domain[0], 0]);
         return d.x < 0 
-            ? this.axisBottom.scale(min) - this.axisBottom.scale(d.x)
-            : this.axisBottom.scale(d.x) - this.axisBottom.scale(min)
+            ? this.axisBottom.scale(min) - this.axisBottom.scale(d.y)
+            : this.axisBottom.scale(d.y) - this.axisBottom.scale(min)
       })
       .attr('x', () => {
         const min = d3.max([this.axisBottom.domain[0], 0]);
         return this.axisBottom.scale(min)
       })
-      .attr('y', d => axisLeftGroupScale(d.y))
+      .attr('y', d => axisLeftGroupScale(d.x))
     }
 
-    const barGroup = this.barGroup.el.selectAll(".bar-group").data(barGroupData, (d) => d.y);    
+    const barGroup = this.barGroup.el.selectAll(".bar-group").data(barGroupData, (d) => d.x);    
 
     const newBarGroup = barGroup.enter().append("g").attr("class", "bar-group").call(updateBarGroup)
-    newBarGroup.selectAll(".bar").data(d => d.groups, k => k.y).enter().append("rect").attr('class', 'bar').call(updateBar)
+    newBarGroup.selectAll(".bar").data(d => d.groups, k => k.x).enter().append("rect").attr('class', 'bar').call(updateBar)
       
     // Update groups
     barGroup.call(updateBarGroup)
     barGroup.exit().remove()
 
     // Update columns
-    const bars = barGroup.selectAll(".bar").data(d => d.groups, k => k.y);
+    const bars = barGroup.selectAll(".bar").data(d => d.groups, k => k.x);
     bars.enter().append("rect").attr("class", "column").call(updateBar);
     bars.call(updateBar)
     bars.exit().remove();
@@ -731,17 +733,17 @@ class StackedBarChart extends Chart {
     super.update(config);
     
     const values = [];
-    this.datasets.forEach(d => {d.values.forEach(r => {if (values.indexOf(r.y) === -1) {values.push(r.y)}})});
+    this.datasets.forEach(d => {d.values.forEach(r => {if (values.indexOf(r.x) === -1) {values.push(r.x)}})});
     this.axisLeft.domain = values.reverse();
     super.drawLeftAxis();
 
     const stackedGroupData = this.axisLeft.domain.map(groupName => {
       let groupValues = this.datasets.map(dataset => {
          const values = dataset.values;
-         const matched = values.find(d => d.y === groupName) || {};
+         const matched = values.find(d => d.x === groupName) || {};
          return {
-            y: dataset.name,
-            x: matched.x || 0,
+            x: dataset.name,
+            y: matched.y || 0,
             color: dataset.color,
             order: dataset.order || 0
          }
@@ -754,16 +756,16 @@ class StackedBarChart extends Chart {
       // Stack Data
       groupValues.forEach((d, i) => {
          const previousValue = groupValues[i-1] || {};
-         const previousX1 = previousValue.x1 || 0;
-         d.x1 = previousX1 + d.x;
-         d.x0 = previousX1;
+         const previousY1 = previousValue.y1 || 0;
+         d.y1 = previousY1 + d.y;
+         d.y0 = previousY1;
       })
 
       return {
-         y: groupName,
+         x: groupName,
          groups: groupValues,
-         min: groupValues[0].x0 || 0,
-         max: groupValues[groupValues.length - 1].x1 || 0,
+         min: groupValues[0].y0 || 0,
+         max: groupValues[groupValues.length - 1].y1 || 0,
       }
     })
 
@@ -771,28 +773,28 @@ class StackedBarChart extends Chart {
     super.drawBottomAxis();
     
     const updateBarGroup = (node) => {
-     node.attr("transform", d => "translate(0, " + this.axisLeft.scale(d.y) + ")")
-     .attr("height", this.axisLeft.scale.bandwidth()) 
+      node.attr("transform", d => "translate(0, " + this.axisLeft.scale(d.x) + ")")
+        .attr("height", this.axisLeft.scale.bandwidth()) 
     }
 
     const updateBar = (node) => {
       node.style('fill', d => d.color)
-      .attr('height', this.axisLeft.scale.bandwidth())
-      .attr('width', d => {
-        const min = d3.max([this.axisBottom.domain[0], d.x0])
-        const rectHeight = this.axisBottom.scale(d.x1) - this.axisBottom.scale(min);
-        return d3.max([0, rectHeight]);
-      })
-      .attr('x', d => {
-        return this.axisBottom.scale(d.x0)
-      })
-      .attr('y', d => this.axisLeft.scale(d.y))
+        .attr('height', this.axisLeft.scale.bandwidth())
+        .attr('width', d => {
+          const min = d3.max([this.axisBottom.domain[0], d.y0])
+          const rectHeight = this.axisBottom.scale(d.y1) - this.axisBottom.scale(min);
+          return d3.max([0, rectHeight]);
+        })
+        .attr('x', d => {
+          return this.axisBottom.scale(d.y0)
+        })
+        .attr('y', d => this.axisLeft.scale(d.x))
     }
 
-    const barGroup = this.barGroup.el.selectAll(".bar-group").data(stackedGroupData, (d) => d.y);
+    const barGroup = this.barGroup.el.selectAll(".bar-group").data(stackedGroupData, (d) => d.x);
     const newBarGroup = barGroup.enter().append("g").attr("class", "bar-group").call(updateBarGroup)
     
-    newBarGroup.selectAll(".bar").data(d => d.groups, k => k.y).enter()
+    newBarGroup.selectAll(".bar").data(d => d.groups, k => k.x).enter()
       .append("rect")
       .attr("class", "bar")
       .call(updateBar)
@@ -801,7 +803,7 @@ class StackedBarChart extends Chart {
     barGroup.exit().remove();
 
     // Update bars
-    const bars = barGroup.selectAll(".bar").data(d => d.groups, k => k.y);
+    const bars = barGroup.selectAll(".bar").data(d => d.groups, k => k.x);
     bars.enter().append("rect").attr("class", "column").call(updateBar);
     bars.call(updateBar)
     bars.exit().remove();

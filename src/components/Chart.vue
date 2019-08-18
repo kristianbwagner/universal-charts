@@ -21,7 +21,7 @@ export default {
               name: 'scores',
               axis: 'left',
               type: 'column',
-              color: '#056ec9',
+              color: 'blue',
               values: [
                 {x: 'A', y: 5},
                 {x: 'B', y: 17},
